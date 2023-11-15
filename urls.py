@@ -15,8 +15,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from account.views import index
+from django.conf.urls import url
+from django.conf.urls.static import static
+from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('account.urls')),
-]
+    path('api/', include('datacollator.urls')),
+] # + static('media/', document_root=settings.MEDIA_ROOT)
+
+
+# urlpatterns += [url(r'app/^(?:.*)/?$', index, name='index1')]
+# urlpatterns += [url('app/', index, name='index1')]
