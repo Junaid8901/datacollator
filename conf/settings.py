@@ -141,7 +141,7 @@ CORS_ALLOW_HEADERS = [
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, "templates")],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -167,6 +167,32 @@ DATABASES = {
     }
 }
 
+if DEBUG:
+    INSTALLED_APPS = INSTALLED_APPS + ["debug_toolbar"]
+    MIDDLEWARE = MIDDLEWARE + ["debug_toolbar.middleware.DebugToolbarMiddleware"]
+    INTERNAL_IPS = ["127.0.0.1"]
+
+CKEDITOR_CONFIGS = {
+    "default": {
+        "toolbar": "full",
+        "extraPlugins": ",".join(
+            [
+                "lineheight",
+                "richcombo",
+            ]
+        ),
+        "stylesSet": [
+            {
+                "name": "Lead",
+                "element": "p",
+                "attributes": {"margin-top": "0px", "margin-bottom": "0px"},
+            },
+        ],
+    }
+}
+BY_PASS_API_KEY = True
+APPEND_SLASH = True
+BY_PASS_PERMISSION = False
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -206,8 +232,8 @@ CELERY_RESULT_BACKEND = "redis://localhost:6379/2"
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
-# STATIC_URL = '/static/'
-# STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 # STATIC_ROOT = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 

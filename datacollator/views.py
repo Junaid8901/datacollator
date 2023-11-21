@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from account.utils import CustomPagination
 from datacollator import DbTypeChoices
 from .models import Dbfiles,PcdRefset
+from .filters import PcdFilter
+from django.core.paginator import Paginator
 from .tasks import upload_pcd
 import tempfile
 import csv
@@ -112,6 +114,7 @@ class PcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAP
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PcdRefsetSerializer
     pagination_class = CustomPagination
+    filterset_class = PcdFilter
     queryset = PcdRefset.objects.all()
     lookup_field = 'id'
 
@@ -120,12 +123,12 @@ class PcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAP
             return self.retrieve(request, *args, **kwargs)
         else:
             return self.list(request, *args, **kwargs)
+            
         
     def get_queryset(self):
         queryset = self.queryset
         if 'id' not in self.kwargs:
-            db_type = self.request.query_params.get('db_type', None)
-            queryset = PcdRefset.objects.filter(db_type=db_type).order_by('-id')
+            queryset = PcdRefset.objects.all().order_by('-id')[:50000]
 
         return queryset
 
