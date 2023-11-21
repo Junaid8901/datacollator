@@ -24,8 +24,13 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('account.urls')),
     path('api/', include('datacollator.urls')),
-] # + static('media/', document_root=settings.MEDIA_ROOT)
+]  + static('media/', document_root=settings.MEDIA_ROOT)
 
+if settings.DEBUG:
+    import debug_toolbar
 
-# urlpatterns += [url(r'app/^(?:.*)/?$', index, name='index1')]
-# urlpatterns += [url('app/', index, name='index1')]
+    urlpatterns = urlpatterns + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns = urlpatterns + [path("__debug__/", include(debug_toolbar.urls))]
+
+urlpatterns += [url(r'app/^(?:.*)/?$', index, name='index1')]
+urlpatterns += [url('app/', index, name='index1')]
