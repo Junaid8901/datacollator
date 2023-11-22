@@ -1,12 +1,12 @@
-from .serializers import DbSerializer,PcdRefsetSerializer
+from .serializers import DbSerializer,PcdRefsetSerializer,ExportedPcdRefsetSerializer
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from account.utils import CustomPagination
 from datacollator import DbTypeChoices
-from .models import Dbfiles,PcdRefset
+from .models import Dbfiles,PcdRefset,ExportedPcdRefset
 from .filters import PcdFilter
 from django.core.paginator import Paginator
-from .tasks import upload_pcd
+from .tasks import upload_pcd,generate_and_save_csv
 import tempfile
 import csv
 import os
@@ -140,3 +140,32 @@ class PcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAP
 
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+    
+
+class ExportedPcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ExportedPcdRefsetSerializer
+    pagination_class = CustomPagination
+    queryset = ExportedPcdRefset.objects.all()
+    lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+        if 'id' in self.kwargs:
+            return self.retrieve(request, *args, **kwargs)
+        else:
+            return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        # Assuming the request contains 'pcd_ids'
+        pcd_ids = request.data.get('pcd_ids', [])
+        
+        # Create the ExportedPcdRefset object
+        exported_pcdrefset = ExportedPcdRefset(created_by=request.user, status='pending')
+        exported_pcdrefset.save()
+
+        # Trigger the Celery task with the ExportedPcdRefset ID
+        generate_and_save_csv.delay(pcd_ids=pcd_ids, exported_pcdrefset_id=exported_pcdrefset.id)
+
+        # Return the serialized data in the response
+        serializer = self.get_serializer(exported_pcdrefset)
+        return Response(serializer.data)

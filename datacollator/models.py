@@ -1,7 +1,7 @@
 from django.db import models
 from datacollator import DbTypeChoices
 from account.models import User
-from datacollator import status_code
+from datacollator import status_code,STATUS_CHOICES
 # Create your models here.
 
 
@@ -37,3 +37,22 @@ class Dbfiles(models.Model):
         return str(self.file.name)
 
     
+
+
+class ExportedPcdRefset(models.Model):
+    file = models.FileField(upload_to='exported_pcdrefsets/')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+
+
+    def __str__(self):
+        return f"ExportedPcdRefset {self.created_by}"
+    
+
+class PcdProject(models.Model):
+    pcd_refsets = models.ManyToManyField(PcdRefset)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    total_count = models.IntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)

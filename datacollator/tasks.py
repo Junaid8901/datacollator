@@ -5,9 +5,14 @@ from conf.celery import app
 from account.models import User
 from datacollator import DbTypeChoices
 from django.core.files.uploadedfile import InMemoryUploadedFile
-import time
+from django.core.files.base import ContentFile
+from datetime import datetime
 from .models import Dbfiles,PcdRefset
-
+import csv
+from decimal import Decimal
+from io import StringIO
+from django.contrib.auth.models import User
+from .models import ExportedPcdRefset, PcdRefset
 
 
 @app.task()
@@ -197,3 +202,62 @@ def output_description_file_data(file_path, modelobj, db_type):
         modelobj.status = 'Unsuccessful'
         modelobj.description = 'File model object not found'
         modelobj.save()
+        
+        
+@app.task()
+def generate_and_save_csv(pcd_ids, exported_pcdrefset_id):
+    try:
+        # Fetch ExportedPcdRefset
+        exported_pcdrefset = ExportedPcdRefset.objects.get(id=exported_pcdrefset_id)
+
+        # Fetch PcdRefset objects based on provided IDs
+        pcd_refsets = PcdRefset.objects.filter(id__in=pcd_ids)
+
+        # Create a CSV content
+        csv_content = StringIO()
+        csv_writer = csv.writer(csv_content)
+
+        # Add "created_by" and "created_at" above the headers and make them bold
+        csv_writer.writerow(['created_by:', '', exported_pcdrefset.created_by.email, '', '', ''])
+        csv_writer.writerow(['created_at:', '', datetime.now().date(), '', '', ''])
+        csv_writer.writerow([])  # Add an empty row for separation
+
+        # Define the desired header fields
+        header_fields = ['Cluster_ID', 'Output_ID', 'SNOMED_code', 'SNOMED_code_description', 'PCD Refset ID', 'Service_and_Ruleset']
+
+        csv_writer.writerow(header_fields)  # Write custom header
+
+        # # Create a CSV content
+        # csv_writer.writerow(header_fields)  # Write custom header
+        for pcd_refset in pcd_refsets:
+            # Format refset_id as string to avoid scientific notation
+            formatted_refset_id = str(Decimal(pcd_refset.pcd_refset_id))
+
+            # Write data for each field in the custom header
+            csv_writer.writerow([
+                pcd_refset.cluster_id,
+                pcd_refset.output_id,
+                pcd_refset.snomed_code,
+                pcd_refset.snomed_code_description,
+                formatted_refset_id,
+                pcd_refset.service_id,
+            ])
+
+        # Convert StringIO to ContentFile
+        csv_content.seek(0)
+        file_name = f'exported_pcdrefset_{exported_pcdrefset.id}.csv'
+        exported_pcdrefset.file.save(file_name, ContentFile(csv_content.read()))
+        exported_pcdrefset.status = 'success'
+        exported_pcdrefset.save()
+
+        # Return relevant information for serialization
+        return {
+            'exported_pcdrefset_id': exported_pcdrefset.id,
+            'status': exported_pcdrefset.status,
+            'file_name': file_name,
+            # Add any other relevant fields for serialization
+        }
+
+    except ExportedPcdRefset.DoesNotExist:
+        # Handle the case where the ExportedPcdRefset does not exist
+        return {'status': 'error'}
