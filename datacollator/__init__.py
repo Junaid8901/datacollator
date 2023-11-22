@@ -20,3 +20,9 @@ status_code = [
     ('Completed', "Completed"),
     ('Unsuccessful', 'Unsuccessful'),
 ]
+
+STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('success', 'Success'),
+        ('error', 'Error'),
+    ]
