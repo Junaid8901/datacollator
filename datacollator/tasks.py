@@ -4,7 +4,7 @@ from django.db import transaction
 from conf.celery import app
 from account.models import User
 from datacollator import DbTypeChoices
-from django.core.files.uploadedfile import InMemoryUploadedFile
+from django.db import IntegrityError
 from django.core.files.base import ContentFile
 from datetime import datetime
 from .models import Dbfiles,PcdRefset
@@ -148,56 +148,60 @@ def content_by_output_file_data(file_path, modelobj, db_type):
         modelobj.save()
         
         
+
 def output_description_file_data(file_path, modelobj, db_type):
     if modelobj:
-        with open(file_path, 'r', encoding="utf8") as file:
-            csvreader = csv.reader(file, delimiter=",")
-            header = next(csvreader, None)  # Get the header row
-            if header is None:
-                modelobj.status = 'Unsuccessful'
-                modelobj.description = 'CSV file is empty'
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='replace') as file:
+                csvreader = csv.reader(file, delimiter=",")
+                header = next(csvreader, None)  # Get the header row
+                if header is None:
+                    modelobj.status = 'Unsuccessful'
+                    modelobj.description = 'CSV file is empty'
+                    modelobj.save()
+                    return
+
+                data_list = []
+                modelobj.status = 'In progress'
+                modelobj.description = 'Reading and validating data'
                 modelobj.save()
-                return
 
-            data_list = []
+                for row in csvreader:
+                    # Check if all expected columns are present
+                    if len(row) >= 4:
+                        try:
+                            # Attempt to convert to float and then to int
+                            data_dict = {
+                                "service_id": row[0],
+                                "ruleset_id": row[1],
+                                "output_description": row[2],
+                                "type": row[3],
+                                "db_type": db_type,
+                            }
+                            data_list.append(data_dict)
 
-            modelobj.status = 'In progress'
-            modelobj.description = 'Reading and validating data'
-            modelobj.save()
-
-            for row in csvreader:
-                # Check if all expected columns are present
+                        except (ValueError, IndexError) as e:
+                            # Handle non-numeric values or missing columns
+                            print(f'Error processing row: {str(e)}')
                 
                 try:
-                    # Attempt to convert to float and then to int
+                    obj_list = [PcdRefset(**data) for data in data_list]
+                    PcdRefset.objects.bulk_create(obj_list)
 
-                    data_dict = {
-                        "service_id": row[0],
-                        "ruleset_id": row[1],
-                        "output_description": row[2],
-                        # "snomed_code": snomed_code,
-                        "type": row[3],
-                        "db_type": db_type,
-                    }
-                    
-                    data_list.append(data_dict)
+                    modelobj.status = 'Completed'
+                    modelobj.description = 'Data saved successfully'
+                    modelobj.save()
 
-                except (ValueError, IndexError) as e:
-                    # Handle non-numeric values or missing columns
-                    print(f'Error processing row: {str(e)}')
+                except IntegrityError as e:
+                    modelobj.status = 'Unsuccessful'
+                    modelobj.description = 'IntegrityError: Duplicate entry or invalid data'
+                    modelobj.save()
 
-            try:
-                obj_list = [PcdRefset(**data) for data in data_list]
-                PcdRefset.objects.bulk_create(obj_list)
+        except Exception as e:
+            modelobj.status = 'Unsuccessful'
+            modelobj.description = f'Error opening the file: {str(e)}'
+            modelobj.save()
 
-                modelobj.status = 'Completed'
-                modelobj.description = 'Data saved successfully'
-                modelobj.save()
-
-            except Exception as e:
-                modelobj.status = 'Unsuccessful'
-                modelobj.description = str(e)
-                modelobj.save()
     else:
         modelobj.status = 'Unsuccessful'
         modelobj.description = 'File model object not found'
@@ -219,7 +223,7 @@ def generate_and_save_csv(pcd_ids, exported_pcdrefset_id):
 
         # Add "created_by" and "created_at" above the headers and make them bold
         csv_writer.writerow(['created_by:', '', exported_pcdrefset.created_by.email, '', '', ''])
-        csv_writer.writerow(['created_at:', '', datetime.now().date(), '', '', ''])
+        csv_writer.writerow(['created_at:', '', datetime.now().date(), datetime.now().time(), '', ''])
         csv_writer.writerow([])  # Add an empty row for separation
 
         # Define the desired header fields
@@ -230,8 +234,10 @@ def generate_and_save_csv(pcd_ids, exported_pcdrefset_id):
         # # Create a CSV content
         # csv_writer.writerow(header_fields)  # Write custom header
         for pcd_refset in pcd_refsets:
+            formatted_refset_id=""
             # Format refset_id as string to avoid scientific notation
-            formatted_refset_id = str(Decimal(pcd_refset.pcd_refset_id))
+            if pcd_refset.pcd_refset_id:
+                formatted_refset_id = str(Decimal(pcd_refset.pcd_refset_id))
 
             # Write data for each field in the custom header
             csv_writer.writerow([

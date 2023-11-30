@@ -21,9 +21,16 @@ class PcdRefsetSerializer(serializers.ModelSerializer):
         
 
 class ExportedPcdRefsetSerializer(serializers.ModelSerializer):
+    user_detail=serializers.SerializerMethodField()
     class Meta:
         model = ExportedPcdRefset
         fields = '__all__'
+        
+    def get_user_detail(self,obj):
+        try:
+            return {"id":obj.created_by.id,"name":obj.created_by.first_name}
+        except:
+            return {}
         
         
 class PcdProjectSerializer(serializers.ModelSerializer):

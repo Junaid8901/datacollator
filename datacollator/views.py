@@ -128,7 +128,7 @@ class PcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAP
     def get_queryset(self):
         queryset = self.queryset
         if 'id' not in self.kwargs:
-            queryset = PcdRefset.objects.all().order_by('-id')[:50000]
+            queryset = PcdRefset.objects.all().order_by('-id')[:2000]
 
         return queryset
 
@@ -146,7 +146,7 @@ class ExportedPcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateD
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ExportedPcdRefsetSerializer
     pagination_class = CustomPagination
-    queryset = ExportedPcdRefset.objects.all()
+    queryset = ExportedPcdRefset.objects.all().order_by('-id')
     lookup_field = 'id'
 
     def get(self, request, *args, **kwargs):
@@ -169,3 +169,6 @@ class ExportedPcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateD
         # Return the serialized data in the response
         serializer = self.get_serializer(exported_pcdrefset)
         return Response(serializer.data)
+    
+    def delete(self, request, *args, **kwargs):
+        return super().delete(request, *args, **kwargs)

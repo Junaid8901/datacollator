@@ -240,7 +240,8 @@ class ProfileView(generics.ListAPIView, generics.RetrieveUpdateDestroyAPIView):
     
     
     def put(self, request, *args, **kwargs):
-        serializer = UserDetailViewSerializer(data=request.data)
+        instance = self.get_object()
+        serializer = UserDetailViewSerializer(instance, data=request.data)  # Pass instance to serializer
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)

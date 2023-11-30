@@ -10,7 +10,7 @@ from .models import User,OtpVerify,UserPermission,UserRole,Department
 class BaseUserAdmin(UserAdmin):
     fieldsets = (
         (None, {'fields': ('email',  'password')}),
-        (_('Personal info'), {'fields': ('is_owner', 'first_name', 'last_name', 'phone', "date_of_birth", "profile_picture")}),
+        (_('Personal info'), {'fields': ('is_owner', 'first_name', 'last_name', 'phone', "date_of_birth")}),
         (_('Permissions'), {
             'fields': ('is_approved', 'is_active', 'is_staff', 'is_verified',  'is_superuser', 'groups', 'user_permissions', 'user_role'),
         }),
@@ -18,11 +18,11 @@ class BaseUserAdmin(UserAdmin):
     )
     filter_horizontal = ()
     ordering = ('pk',)
-    list_display = ("id", 'email', 'first_name', 'last_name')
+    list_display = ("id", 'email', 'first_name', 'last_name',"is_active")
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('first_name', 'last_name', 'email', 'password1', 'password2',"user_role"),
+            'fields': ('first_name', 'last_name', 'email', 'password1', 'password2',"user_role","is_active"),
         }),)
 
 admin.site.register(User, BaseUserAdmin)

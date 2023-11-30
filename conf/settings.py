@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os
+import socket
 from pathlib import Path
 from django.utils.timezone import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -248,6 +249,21 @@ EMAIL_USE_SSL = True
 EMAIL_USE_TLS = False
 
 
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(("10.255.255.255", 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = "127.0.0.1"
+    finally:
+        s.close()
+    return IP
+
+
+local_ip = get_ip()
+MEDIA_URL = "http://{0}:8000/media/".format(local_ip)
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 

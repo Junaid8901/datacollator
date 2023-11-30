@@ -142,12 +142,11 @@ class UserDetailViewSerializer(serializers.ModelSerializer):
             ]
 
         read_only_field = ['id', 'email']
+        extra_kwargs = {
+            'email': {'required': False},
+            'is_active': {'required': False},
+        }
         
-    def validate(self, attrs):
-        for field in ["profile_picture"]:
-            if field in attrs:
-                attrs[field] = unquote(attrs[field]).replace(settings.MEDIA_URL, "")
-        return super().validate(attrs)
 
 
     def to_representation(self, instance):
@@ -155,10 +154,6 @@ class UserDetailViewSerializer(serializers.ModelSerializer):
         for field in UserDetailViewSerializer.DEPTH_OPEN_FIELDS:
             data[field] = NameIdSerializer().to_representation(getattr(instance, field))
         return data
-    
-    def to_representation(self, obj):
-        self.fields["profile_picture"] = serializers.FileField()
-        return super().to_representation(obj)
 
 
 
