@@ -51,6 +51,7 @@ class ExportedPcdRefset(models.Model):
     
 
 class PcdProject(models.Model):
+    project_name = models.CharField(max_length=200, null=True, blank=True)
     pcd_refsets = models.ManyToManyField(PcdRefset)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     total_count = models.IntegerField()

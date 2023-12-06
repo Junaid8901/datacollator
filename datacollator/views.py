@@ -1,12 +1,12 @@
-from .serializers import DbSerializer,PcdRefsetSerializer,ExportedPcdRefsetSerializer
+from .serializers import DbSerializer,PcdRefsetSerializer,ExportedPcdRefsetSerializer,PcdProjectSerializer
+from .models import Dbfiles,PcdRefset,ExportedPcdRefset,PcdProject
 from rest_framework import generics, permissions, status
+from .tasks import upload_pcd,generate_and_save_csv
 from rest_framework.response import Response
+from django.core.paginator import Paginator
 from account.utils import CustomPagination
 from datacollator import DbTypeChoices
-from .models import Dbfiles,PcdRefset,ExportedPcdRefset
 from .filters import PcdFilter
-from django.core.paginator import Paginator
-from .tasks import upload_pcd,generate_and_save_csv
 import tempfile
 import csv
 import os
@@ -128,7 +128,7 @@ class PcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAP
     def get_queryset(self):
         queryset = self.queryset
         if 'id' not in self.kwargs:
-            queryset = PcdRefset.objects.all().order_by('-id')[:2000]
+            queryset = PcdRefset.objects.all().order_by('-id')
 
         return queryset
 
@@ -172,3 +172,50 @@ class ExportedPcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateD
     
     def delete(self, request, *args, **kwargs):
         return super().delete(request, *args, **kwargs)
+    
+    
+
+class PcdProjectAPIView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PcdProjectSerializer
+    queryset = PcdProject.objects.all().order_by('-id')
+    lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+        if 'id' in self.kwargs:
+            return self.retrieve(request, *args, **kwargs)
+        else:
+            return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        # Assuming the request contains 'pcd_refsets'
+        pcd_refsets_ids = request.data.get('pcd_refsets', [])
+        project_name = request.data.get('project_name', "")
+
+        # Create the PcdProject object
+        pcd_project = PcdProject(total_count=len(pcd_refsets_ids), created_by=request.user, project_name= project_name)
+        pcd_project.save()
+
+        # Assign pcd_refsets to the PcdProject
+        pcd_project.pcd_refsets.set(pcd_refsets_ids)
+
+        # Return the serialized data in the response
+        serializer = self.get_serializer(pcd_project)
+        return Response(serializer.data)
+
+    def put(self, request, *args, **kwargs):
+        # Assuming the request contains 'pcd_refsets'
+        pcd_refsets_ids = request.data.get('pcd_refsets', [])
+
+        # Get the PcdProject instance
+        instance = self.get_object()
+
+        # Update the PcdProject instance with the new pcd_refsets
+        instance.pcd_refsets.set(pcd_refsets_ids)
+
+        # Return the serialized data in the response
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
