@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Dbfiles,PcdRefset
+from .models import Dbfiles,PcdRefset,PcdProject 
 # Register your models here.
 
 class PcdRefsetFileLogAdmin(admin.ModelAdmin):
@@ -8,3 +8,4 @@ class PcdRefsetFileLogAdmin(admin.ModelAdmin):
 
 admin.site.register(Dbfiles)
 admin.site.register(PcdRefset, PcdRefsetFileLogAdmin)
+admin.site.register(PcdProject)

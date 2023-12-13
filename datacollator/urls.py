@@ -12,6 +12,6 @@ urlpatterns = [
     path('exported/<int:id>/', ExportedPcdRefsetView.as_view(), name='exported_pcdrefset_detail'),
     
     path('pcd-projects/', PcdProjectAPIView.as_view(), name='pcdproject-list-create'),
-    path('pcd-projects/<int:pk>/', PcdProjectAPIView.as_view(), name='pcdproject-retrieve-update-destroy'),
+    path('pcd-projects/<int:id>/', PcdProjectAPIView.as_view(), name='pcdproject-retrieve-update-destroy'),
 
 ]

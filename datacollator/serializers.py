@@ -39,7 +39,7 @@ class PcdProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PcdProject
-        fields = ['id', 'pcd_refsets', 'created_by', 'total_count', 'created_at', 'updated_at']
+        fields = ['id', 'pcd_refsets', 'created_by', 'total_count', 'created_at', 'updated_at',"project_name"]
         read_only_fields = ['id',"created_at","updated_at" ]
         # Add other fields from the PcdProject model as needed
 

@@ -2,11 +2,11 @@ from .serializers import DbSerializer,PcdRefsetSerializer,ExportedPcdRefsetSeria
 from .models import Dbfiles,PcdRefset,ExportedPcdRefset,PcdProject
 from rest_framework import generics, permissions, status
 from .tasks import upload_pcd,generate_and_save_csv
+from .filters import PcdFilter,PcdProjectFilter
 from rest_framework.response import Response
 from django.core.paginator import Paginator
 from account.utils import CustomPagination
 from datacollator import DbTypeChoices
-from .filters import PcdFilter
 import tempfile
 import csv
 import os
@@ -158,13 +158,22 @@ class ExportedPcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateD
     def post(self, request, *args, **kwargs):
         # Assuming the request contains 'pcd_ids'
         pcd_ids = request.data.get('pcd_ids', [])
-        
-        # Create the ExportedPcdRefset object
-        exported_pcdrefset = ExportedPcdRefset(created_by=request.user, status='pending')
+        source = request.data.get('source', 'pcd_data')
+        project_id = request.data.get('project_id', None)
+        exported_pcdrefset = ExportedPcdRefset(created_by=request.user, status='pending',source=source)
         exported_pcdrefset.save()
-
+        
+        if source == "pcd_data":
+            # Create the ExportedPcdRefset object
+            generate_and_save_csv.delay(pcd_ids=pcd_ids, exported_pcdrefset_id=exported_pcdrefset.id)
+        else:
+            try:
+                instance = PcdProject.objects.get(id=project_id)
+            except PcdProject.DoesNotExist:
+                return Response({'error': 'PcdProject not found.'}, status=404)
+            pcd_refsets_ids = list(instance.pcd_refsets.values_list('id', flat=True))
+            generate_and_save_csv.delay(pcd_ids=pcd_ids, exported_pcdrefset_id=exported_pcdrefset.id)
         # Trigger the Celery task with the ExportedPcdRefset ID
-        generate_and_save_csv.delay(pcd_ids=pcd_ids, exported_pcdrefset_id=exported_pcdrefset.id)
 
         # Return the serialized data in the response
         serializer = self.get_serializer(exported_pcdrefset)
@@ -178,6 +187,8 @@ class ExportedPcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateD
 class PcdProjectAPIView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PcdProjectSerializer
+    filterset_class = PcdProjectFilter
+    pagination_class = CustomPagination
     queryset = PcdProject.objects.all().order_by('-id')
     lookup_field = 'id'
 
@@ -205,16 +216,23 @@ class PcdProjectAPIView(generics.ListCreateAPIView, generics.RetrieveUpdateDestr
 
     def put(self, request, *args, **kwargs):
         # Assuming the request contains 'pcd_refsets'
-        pcd_refsets_ids = request.data.get('pcd_refsets', [])
-
-        # Get the PcdProject instance
         instance = self.get_object()
+        pcd_refsets_ids = request.data.get('pcd_refsets', [])
+        project_name = request.data.get('project_name', "")
+        if pcd_refsets_ids:
+            # Get the PcdProject instance
 
         # Update the PcdProject instance with the new pcd_refsets
-        instance.pcd_refsets.set(pcd_refsets_ids)
-
-        # Return the serialized data in the response
+            instance.pcd_refsets.add(*pcd_refsets_ids)
+            instance.total_count = len(instance.pcd_refsets.all())
+            instance.save()
+        if project_name:
+            print("here")
+            instance.project_name =project_name
+            instance.save()
         serializer = self.get_serializer(instance)
+        print("instance....",instance.project_name)
+        # Return the serialized data in the response
         return Response(serializer.data)
 
     def delete(self, request, *args, **kwargs):

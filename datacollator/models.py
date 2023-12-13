@@ -1,7 +1,7 @@
 from django.db import models
 from datacollator import DbTypeChoices
 from account.models import User
-from datacollator import status_code,STATUS_CHOICES
+from datacollator import status_code,STATUS_CHOICES,SOURCE_CHOICES
 # Create your models here.
 
 
@@ -44,6 +44,7 @@ class ExportedPcdRefset(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, null=True, blank=True)
 
 
     def __str__(self):

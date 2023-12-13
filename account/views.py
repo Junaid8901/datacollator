@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework_api_key.permissions import HasAPIKey
 from rest_framework.exceptions import NotFound
 from django.db.models import Q
+from sympy import true
 # from account.decorator import permission_required
 from account.utils import CustomPagination
 from conf import settings
@@ -68,7 +69,7 @@ class UserView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAPIView
     def get_queryset(self):
         queryset = self.queryset
         if 'id' not in self.kwargs:
-            queryset = User.objects.all().order_by('-id')
+            queryset = User.objects.exclude(id=self.request.user.id).order_by('-id').exclude(is_superuser=True)
         return queryset
 
     def get_serializer_class(self):

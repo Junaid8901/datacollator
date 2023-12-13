@@ -26,3 +26,7 @@ STATUS_CHOICES = [
         ('success', 'Success'),
         ('error', 'Error'),
     ]
+SOURCE_CHOICES = (
+        ('pcd_data', 'PcdData'),
+        ('pcd_project', 'PcdProject'),
+    )
