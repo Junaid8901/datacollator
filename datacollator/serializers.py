@@ -33,15 +33,15 @@ class ExportedPcdRefsetSerializer(serializers.ModelSerializer):
             return {}
         
         
+
 class PcdProjectSerializer(serializers.ModelSerializer):
     pcd_refsets = PcdRefsetSerializer(many=True)  # Serializer for the ManyToMany field
     total_count = serializers.SerializerMethodField()
 
     class Meta:
         model = PcdProject
-        fields = ['id', 'pcd_refsets', 'created_by', 'total_count', 'created_at', 'updated_at',"project_name"]
-        read_only_fields = ['id',"created_at","updated_at" ]
-        # Add other fields from the PcdProject model as needed
+        fields = ['id', 'pcd_refsets', 'created_by', 'total_count', 'created_at', 'updated_at', 'project_name']
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
     def get_total_count(self, obj):
         # Calculate the total count of objects in the ManyToManyField

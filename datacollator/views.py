@@ -1,11 +1,12 @@
 from .serializers import DbSerializer,PcdRefsetSerializer,ExportedPcdRefsetSerializer,PcdProjectSerializer
 from .models import Dbfiles,PcdRefset,ExportedPcdRefset,PcdProject
 from rest_framework import generics, permissions, status
-from .tasks import upload_pcd,generate_and_save_csv
+from .tasks import upload_pcd,generate_and_save_csv,delete_pcd
 from .filters import PcdFilter,PcdProjectFilter
 from rest_framework.response import Response
 from django.core.paginator import Paginator
 from account.utils import CustomPagination
+from rest_framework.views import APIView
 from datacollator import DbTypeChoices
 import tempfile
 import csv
@@ -172,7 +173,7 @@ class ExportedPcdRefsetView(generics.ListCreateAPIView, generics.RetrieveUpdateD
             except PcdProject.DoesNotExist:
                 return Response({'error': 'PcdProject not found.'}, status=404)
             pcd_refsets_ids = list(instance.pcd_refsets.values_list('id', flat=True))
-            generate_and_save_csv.delay(pcd_ids=pcd_ids, exported_pcdrefset_id=exported_pcdrefset.id)
+            generate_and_save_csv.delay(pcd_ids=pcd_refsets_ids, exported_pcdrefset_id=exported_pcdrefset.id)
         # Trigger the Celery task with the ExportedPcdRefset ID
 
         # Return the serialized data in the response
@@ -215,25 +216,41 @@ class PcdProjectAPIView(generics.ListCreateAPIView, generics.RetrieveUpdateDestr
         return Response(serializer.data)
 
     def put(self, request, *args, **kwargs):
-        # Assuming the request contains 'pcd_refsets'
         instance = self.get_object()
         pcd_refsets_ids = request.data.get('pcd_refsets', [])
         project_name = request.data.get('project_name', "")
-        if pcd_refsets_ids:
-            # Get the PcdProject instance
+        remove = request.data.get('remove', False)
+        
+        if remove:
+    
+            # Remove any pcd_refsets that are not in the updated list
+            current_pcd_refsets_ids = instance.pcd_refsets.values_list('id', flat=True)
+            to_remove = set(current_pcd_refsets_ids) - set(pcd_refsets_ids)
+            instance.pcd_refsets.remove(*to_remove)
 
-        # Update the PcdProject instance with the new pcd_refsets
+            # Update other fields
+            instance.total_count = len(instance.pcd_refsets.all())
+            instance.project_name = project_name
+            instance.save()
+        else:
             instance.pcd_refsets.add(*pcd_refsets_ids)
             instance.total_count = len(instance.pcd_refsets.all())
             instance.save()
-        if project_name:
-            print("here")
-            instance.project_name =project_name
-            instance.save()
+
         serializer = self.get_serializer(instance)
-        print("instance....",instance.project_name)
-        # Return the serialized data in the response
         return Response(serializer.data)
 
     def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
+    
+class PcdRefsetBulkDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def delete(self, request):
+        # Get all PcdRefset instances that are associated with any PcdProject
+        pcd_refsets_to_exclude = PcdProject.objects.values_list('pcd_refsets', flat=True)
+        list_of_exclude_ids=list(set(pcd_refsets_to_exclude))
+        print("in delete",list(set(pcd_refsets_to_exclude)))
+        # Exclude PcdRefset instances associated with any PcdProject
+        delete_pcd.delay(pcd_refsets_to_exclude=list_of_exclude_ids)
+
+        return Response({'success': 'PcdRefsets deleted successfully'}, status=status.HTTP_204_NO_CONTENT)

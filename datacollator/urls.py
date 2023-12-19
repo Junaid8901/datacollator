@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import DbFileView, PcdRefsetView,ExportedPcdRefsetView,PcdProjectAPIView
+from .views import DbFileView, PcdRefsetView,ExportedPcdRefsetView,PcdProjectAPIView,PcdRefsetBulkDeleteView
 
 urlpatterns = [
     path('dbfile/',            DbFileView.as_view(),            name='upload-file'),
@@ -13,5 +13,7 @@ urlpatterns = [
     
     path('pcd-projects/', PcdProjectAPIView.as_view(), name='pcdproject-list-create'),
     path('pcd-projects/<int:id>/', PcdProjectAPIView.as_view(), name='pcdproject-retrieve-update-destroy'),
+    
+     path('pcdrefsets/bulk-delete/', PcdRefsetBulkDeleteView.as_view(), name='pcdrefsets-bulk-delete'),
 
 ]

@@ -267,3 +267,10 @@ def generate_and_save_csv(pcd_ids, exported_pcdrefset_id):
     except ExportedPcdRefset.DoesNotExist:
         # Handle the case where the ExportedPcdRefset does not exist
         return {'status': 'error'}
+    
+@app.task()
+def delete_pcd(*args, **kwargs):
+    pcd_refsets_to_exclude = kwargs.get('pcd_refsets_to_exclude', None)
+    if pcd_refsets_to_exclude:
+        pcd_refsets_to_delete = PcdRefset.objects.exclude(id__in=pcd_refsets_to_exclude)
+        pcd_refsets_to_delete.delete()
