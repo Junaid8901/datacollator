@@ -14,6 +14,6 @@ urlpatterns = [
     path('pcd-projects/', PcdProjectAPIView.as_view(), name='pcdproject-list-create'),
     path('pcd-projects/<int:id>/', PcdProjectAPIView.as_view(), name='pcdproject-retrieve-update-destroy'),
     
-     path('pcdrefsets/bulk-delete/', PcdRefsetBulkDeleteView.as_view(), name='pcdrefsets-bulk-delete'),
+    path('pcdrefsets/bulk-delete/', PcdRefsetBulkDeleteView.as_view(), name='pcdrefsets-bulk-delete'),
 
 ]
