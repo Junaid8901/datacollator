@@ -1,0 +1,1 @@
+import{t as p,p as e,b as d,m,c as u,d as T,e as g}from"./index-a78e1d6d.js";var n={tag:p,className:e.string,cssModule:e.object},x={tag:"p"},a=function(s){var t=s.className,r=s.cssModule,o=s.tag,c=d(s,["className","cssModule","tag"]),l=m(u(t,"card-text"),r);return T.createElement(o,g({},c,{className:l}))};a.propTypes=n;a.defaultProps=x;const v=a;export{v as C};
